@@ -60,10 +60,22 @@ def question3e():
     # If not possible, return 'NOT POSSIBLE'
 
 def question8():
-    answerEpsilon = None
-    answerLearningRate = None
-    return answerEpsilon, answerLearningRate
-    # If not possible, return 'NOT POSSIBLE'
+    for epsilon in [0.1, 0.2, 0.3, 0.4, 0.5]:
+        for learning_rate in [0.1, 0.2, 0.3, 0.4, 0.5]:
+            success_count = 0
+            total_experiments = 10  # Run 10 experiments for each combination
+
+            for _ in range(total_experiments):
+                cmd = f"python gridworld.py -a q -k 50 -n 0 -g BridgeGrid -e {epsilon} -l {learning_rate} -q"
+                output = os.popen(cmd).read()
+                if "Successful" in output:
+                    success_count += 1
+
+            success_rate = success_count / total_experiments
+            if success_rate >= 0.99:
+                return (epsilon, learning_rate)
+
+    return 'NOT POSSIBLE'
 
 if __name__ == '__main__':
     print('Answers to analysis questions:')
