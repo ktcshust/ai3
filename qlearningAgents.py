@@ -45,13 +45,11 @@ class QLearningAgent(ReinforcementAgent):
         "*** YOUR CODE HERE ***"
 
     def getQValue(self, state, action):
-        """
-          Returns Q(state,action)
-          Should return 0.0 if we have never seen a state
-          or the Q node value otherwise
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        features = self.featExtractor.getFeatures(state, action)
+        q_value = 0
+        for feature, value in features.items():
+            q_value += self.weights[feature] * value
+        return q_value
 
 
     def computeValueFromQValues(self, state):
@@ -93,16 +91,11 @@ class QLearningAgent(ReinforcementAgent):
         return action
 
     def update(self, state, action, nextState, reward):
-        """
-          The parent class calls this to observe a
-          state = action => nextState and reward transition.
-          You should do your Q-Value update here
-
-          NOTE: You should never call this function,
-          it will be called on your behalf
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        features = self.featExtractor.getFeatures(state, action)
+        max_next_q_value = max([self.getQValue(nextState, next_action) for next_action in self.getLegalActions(nextState)])
+        difference = reward + self.discount * max_next_q_value - self.getQValue(state, action)
+        for feature, value in features.items():
+            self.weights[feature] += self.alpha * difference * value    
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
