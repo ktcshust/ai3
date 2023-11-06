@@ -60,8 +60,15 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.runValueIteration()
 
     def runValueIteration(self):
-        # Write value iteration code here
-        "*** YOUR CODE HERE ***"
+        for iteration in range(self.iterations):
+            # Create a copy of the values for the current iteration
+            new_values = self.values.copy()
+            for state in self.mdp.getStates():
+                if not self.mdp.isTerminal(state):
+                    # Compute the new value for the state based on the values of its successor states
+                    new_values[state] = self.computeQValueFromValues(state, self.computeActionFromValues(state))
+            # Update the values for the next iteration
+            self.values = new_values
 
 
     def getValue(self, state):
@@ -72,24 +79,22 @@ class ValueIterationAgent(ValueEstimationAgent):
 
 
     def computeQValueFromValues(self, state, action):
-        """
-          Compute the Q-value of action in state from the
-          value function stored in self.values.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        q_value = 0.0
+        for next_state, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+            reward = self.mdp.getReward(state, action, next_state)
+            q_value += prob * (reward + self.discount * self.values[next_state])
+        return q_value
 
     def computeActionFromValues(self, state):
-        """
-          The policy is the best action in the given state
-          according to the values currently stored in self.values.
-
-          You may break ties any way you see fit.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return None.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Iterate over possible actions and compute Q-values
+        best_action = None
+        best_q_value = float("-inf")
+        for action in self.mdp.getPossibleActions(state):
+            q_value = self.computeQValueFromValues(state, action)
+            if q_value > best_q_value:
+                best_action = action
+                best_q_value = q_value
+        return best_action
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
