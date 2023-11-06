@@ -78,14 +78,16 @@ class PacmanQAgent(QLearningAgent):
         QLearningAgent.__init__(self, **args)
 
     def getAction(self, state):
-        """
-        Simply calls the getAction method of QLearningAgent and then
-        informs parent of action for Pacman.  Do not change or remove this
-        method.
-        """
-        action = QLearningAgent.getAction(self,state)
-        self.doAction(state,action)
+        legalActions = self.getLegalActions(state)
+    
+        # Choose random action with probability epsilon
+        if util.flipCoin(self.epsilon):
+            action = random.choice(legalActions)
+        else:
+            action = self.computeActionFromQValues(state)
+    
         return action
+
 
 
 class ApproximateQAgent(PacmanQAgent):
