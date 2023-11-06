@@ -40,28 +40,32 @@ class ValueIterationAgent(ValueEstimationAgent):
         for a given number of iterations using the supplied
         discount factor.
     """
-    def __init__(self, mdp, discount = 0.9, iterations = 100):
-        """
-          Your value iteration agent should take an mdp on
-          construction, run the indicated number of iterations
-          and then act according to the resulting policy.
+    def __init__(self, mdp, discount=0.9, iterations=100, theta=1e-5):
+        self.theta = theta
+        self.pq = util.PriorityQueue()  # Priority queue for prioritized updates
+        ValueIterationAgent.__init__(self, mdp, discount, iterations)
 
-          Some useful mdp methods you will use:
-              mdp.getStates()
-              mdp.getPossibleActions(state)
-              mdp.getTransitionStatesAndProbs(state, action)
-              mdp.getReward(state, action, nextState)
-              mdp.isTerminal(state)
-        """
-        self.mdp = mdp
-        self.discount = discount
-        self.iterations = iterations
-        self.values = util.Counter() # A Counter is a dict with default 0
-        self.runValueIteration()
 
     def runValueIteration(self):
-        # Write value iteration code here
-        "*** YOUR CODE HERE ***"
+        # Step 1: Compute predecessors of all states
+        predecessors = self.computePredecessors()
+
+        # Step 2: Initialize an empty priority queue
+        self.initializePriorityQueue(predecessors)
+
+        # Step 3: Prioritized Sweeping
+        for iteration in range(self.iterations):
+            if self.pq.isEmpty():
+                break
+
+            state = self.pq.pop()
+            if not self.mdp.isTerminal(state):
+                self.updateValue(state)  # Update the value of the state
+
+            for predecessor in predecessors[state]:
+                diff = abs(self.computeValueFromQValues(predecessor) - self.values[predecessor])
+                if diff > self.theta:
+                    self.pq.update(predecessor, -diff)
 
 
     def getValue(self, state):
@@ -102,22 +106,50 @@ class ValueIterationAgent(ValueEstimationAgent):
         return self.computeQValueFromValues(state, action)
 
 
-class PrioritizedSweepingValueIterationAgent(ValueIterationAgent):
-    """
-        * Please read learningAgents.py before reading this.*
-
-        A PrioritizedSweepingValueIterationAgent takes a Markov decision process
-        (see mdp.py) on initialization and runs prioritized sweeping value iteration
-        for a given number of iterations using the supplied parameters.
-    """
-    def __init__(self, mdp, discount = 0.9, iterations = 100, theta = 1e-5):
-        """
-          Your prioritized sweeping value iteration agent should take an mdp on
-          construction, run the indicated number of iterations,
-          and then act according to the resulting policy.
-        """
+class PrioritizedSweepingValueIterationAgent(ValueEstimationAgent):
+    def __init__(self, mdp, discount=0.9, iterations=100, theta=1e-5):
         self.theta = theta
-        ValueIterationAgent.__init__(self, mdp, discount, iterations)
+        ValueEstimationAgent.__init__(self, mdp, discount, iterations)
+
+    def runValueIteration(self):
+        # Step 1: Compute predecessors of all states
+        predecessors = {}
+        for state in self.mdp.getStates():
+            for action in self.mdp.getPossibleActions(state):
+                for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+                    if prob > 0:
+                        if nextState in predecessors:
+                            predecessors[nextState].add(state)
+                        else:
+                            predecessors[nextState] = {state}
+
+        # Step 2: Initialize a priority queue
+        priorityQueue = util.PriorityQueue()
+
+        # Step 3 and 4: Update priorities for non-terminal states
+        for state in self.mdp.getStates():
+            if not self.mdp.isTerminal(state):
+                maxQValue = max([self.computeQValueFromValues(state, action) for action in self.mdp.getPossibleActions(state)])
+                diff = abs(self.values[state] - maxQValue)
+                priorityQueue.push(state, -diff)  # Negative because we want higher error to have higher priority
+
+        # Step 5: Iterate for 'self.iterations' times
+        for iteration in range(self.iterations):
+            if priorityQueue.isEmpty():
+                break
+
+            state = priorityQueue.pop()
+            if not self.mdp.isTerminal(state):
+                # Step 6: Update the value of state
+                self.values[state] = max([self.computeQValueFromValues(state, action) for action in self.mdp.getPossibleActions(state)])
+
+                # Step 7: Update predecessors
+                for predecessor in predecessors[state]:
+                    maxQValue = max([self.computeQValueFromValues(predecessor, action) for action in self.mdp.getPossibleActions(predecessor)])
+                    diff = abs(self.values[predecessor] - maxQValue)
+                    if diff > self.theta:
+                        priorityQueue.update(predecessor, -diff)  # Update the priority
+
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
